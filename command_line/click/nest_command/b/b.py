@@ -9,14 +9,18 @@
 
 import click
 
-@click.group()
-def cli():
+@click.group('run', help='run')
+@click.argument('a', nargs=1)
+def cli(a):
     pass
 
-@cli.command()
+@cli.command('foo', help='foo')
 def foo():
     pass
 
-@cli.command()
+@cli.command('bar', help='bar')
 def bar():
     pass
+
+if __name__ == '__main__':
+    cli()
