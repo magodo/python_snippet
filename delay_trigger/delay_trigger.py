@@ -5,9 +5,6 @@
 # Author: Zhaoting Weng
 # Created Time: Thu 12 Jul 2018 07:23:21 PM CST
 # Description:
-# TODO: 1. stop的时候应该停止loop的sleep
-#       2. stop的时候保证当前已到时刻应该执行的task被执行完毕
-#       3. 执行完毕的task要移出outstanding
 #########################################################################
 
 import gevent
@@ -44,11 +41,10 @@ class DelayRunner:
     def __hour_loop(self):
         while True:
             now = datetime.now()
-            # TODO: restore after test
-            #delta = ((now.replace(microsecond=0, second=0, minute=0) +
-            #         timedelta(hours=1))-now).seconds
-            delta = ((now.replace(microsecond=0) +
-                     timedelta(seconds=1))-now)
+            delta = ((now.replace(microsecond=0, second=0, minute=0) +
+                     timedelta(hours=1))-now).seconds
+            #delta = ((now.replace(microsecond=0) +
+            #         timedelta(seconds=1))-now)
             gevent.sleep(delta.total_seconds())
             #logger.debug('start eoh tasks: {}'.format(['{}: {}'.format(g, 'finish' if g.ready() else 'ready') for g in self.eoh_glet]))
             self.__start_glets(self.eoh_glet)
@@ -56,11 +52,10 @@ class DelayRunner:
     def __day_loop(self):
         while True:
             now = datetime.now()
-            # TODO: restore after test
-            #delta = ((now.replace(microsecond=0, second=0, minute=0, hour=0) +
-            #         timedelta(days=1))-now).seconds
-            delta = ((now.replace(microsecond=0) +
-                     timedelta(seconds=2))-now)
+            delta = ((now.replace(microsecond=0, second=0, minute=0, hour=0) +
+                     timedelta(days=1))-now).seconds
+            #delta = ((now.replace(microsecond=0) +
+            #         timedelta(seconds=2))-now)
             gevent.sleep(delta.total_seconds())
             #logger.debug('start eod tasks: {}'.format(['{}: {}'.format(g, 'finish' if g.ready() else 'ready') for g in self.eod_glet]))
             self.__start_glets(self.eod_glet)
