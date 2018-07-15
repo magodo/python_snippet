@@ -4,7 +4,7 @@
 #########################################################################
 # Author: Zhaoting Weng
 # Created Time: Thu 12 Jul 2018 07:23:21 PM CST
-# Description: 延时start多个greenlet（实际上用gevent.spawn_delay()就可以了）
+# Description: 在特定事件批量执行一次(即只有一个gr)
 #########################################################################
 
 import gevent
@@ -23,19 +23,20 @@ def get_logger():
 
 logger = get_logger()
 
-class DelayRunner:
+class DelayHandler:
     '''run function at a specific point:
 
     rt: realtime, run it right now
     eoh: run it at end of current hour
     eod: run it at end of current day'''
 
-    def __init__(self):
+    def __init__(self, batch_handle_func):
 
+        self.batch_handle_func = batch_handle_func
         self.out_standing_loop_glet = []
         self.out_standing_glet = []
-        self.eoh_glet = []
-        self.eod_glet = []
+        self.eoh_objs = []
+        self.eod_objs = []
         self.is_stop = False
 
     def __hour_loop(self):
@@ -47,7 +48,7 @@ class DelayRunner:
             #         timedelta(seconds=1))-now).total_seconds()
             gevent.sleep(delta)
             #logger.debug('start eoh tasks: {}'.format(['{}: {}'.format(g, 'finish' if g.ready() else 'ready') for g in self.eoh_glet]))
-            self.__start_glets(self.eoh_glet)
+            self.__start_handler(self.eoh_objs)
 
     def __day_loop(self):
         while True:
@@ -58,13 +59,13 @@ class DelayRunner:
             #         timedelta(seconds=2))-now).total_seconds()
             gevent.sleep(delta)
             #logger.debug('start eod tasks: {}'.format(['{}: {}'.format(g, 'finish' if g.ready() else 'ready') for g in self.eod_glet]))
-            self.__start_glets(self.eod_glet)
+            self.__start_handler(self.eod_objs)
 
-    def __start_glets(self, glet_list):
-        for glet in glet_list[:]:
-            glet.start()
-            glet_list.remove(glet)
+    def __start_handler(self, obj_list):
+        if obj_list:
+            glet = gevent.spawn(self.batch_handle_func, obj_list[:])
             self.out_standing_glet.append(glet)
+            obj_list.clear()
 
     def start(self):
         self.is_stop = False
@@ -77,7 +78,7 @@ class DelayRunner:
         self.is_stop = True
         for glet in self.out_standing_loop_glet:
             glet.kill()
-        logger.debug('join outstanding glets: {}'.format(['{}: {}'.format(g, 'finish' if g.ready() else 'ready') for g in self.out_standing_glet]))
+        #logger.debug('join outstanding glets: {}'.format(['{}: {}'.format(g, 'finish' if g.ready() else 'ready') for g in self.out_standing_glet]))
         gevent.joinall(self.out_standing_glet)
 
     def safe_clean_run(f):
@@ -91,29 +92,32 @@ class DelayRunner:
         return __safe_clea_run
 
     @safe_clean_run
-    def run_right_now(self, func, *args, **kwargs):
-        self.out_standing_glet.append(gevent.spawn(func, *args, **kwargs))
+    def handle_now(self, obj):
+        self.out_standing_glet.append(gevent.spawn(self.batch_handle_func, [obj]))
 
     @safe_clean_run
-    def run_at_eoh(self, func, *args, **kwargs):
-        self.eoh_glet.append(gevent.Greenlet(func, *args, **kwargs))
+    def handle_at_eoh(self, obj):
+        self.eoh_objs.append(obj)
 
     @safe_clean_run
-    def run_at_eod(self, func, *args, **kwargs):
-        self.eod_glet.append(gevent.Greenlet(func, *args, **kwargs))
+    def handle_at_eod(self, obj):
+        self.eod_objs.append(obj)
 
 if __name__ == '__main__':
 
-    def echo(msg):
-        logger.debug(msg)
+    def echo(msg_list):
+        logger.debug(" ".join(msg_list))
 
-    delay_runner = DelayRunner()
-    delay_runner.start()
-    delay_runner.run_right_now(echo, 'rt')
-    delay_runner.run_at_eoh(echo, 'eoh1')
-    delay_runner.run_at_eod(echo, 'eod1')
+    h = DelayHandler(echo)
+    h.start()
+    h.handle_now('rt')
+    h.handle_at_eoh('eoh1')
+    h.handle_at_eoh('eoh2')
+    h.handle_at_eod('eod1')
+    h.handle_at_eod('eod2')
     gevent.sleep(1.5)
-    delay_runner.run_at_eoh(echo, 'eoh2')
+    h.handle_at_eoh('eoh3')
+    h.handle_at_eoh('eoh4')
     gevent.sleep(1)
-    delay_runner.run_at_eod(echo, 'eod4')
-    delay_runner.stop()
+    h.handle_at_eod('eod3')
+    h.stop()

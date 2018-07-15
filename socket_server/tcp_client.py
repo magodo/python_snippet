@@ -61,6 +61,6 @@ if __name__ == '__main__':
         def handle_control_comm(self, r, w):
             w.write_packet('stop'.encode('ascii'))
 
-    client = MyClient(socket.gethostname(), 30086, 'foobar.sock')
+    client = MyClient(socket.gethostname(), 10086, 'foo.sock')
     client.data_comm()
-    client.control_comm()
+    #client.control_comm()
