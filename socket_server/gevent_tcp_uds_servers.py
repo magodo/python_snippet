@@ -43,7 +43,7 @@ class Server(abc.ABC):
         if not self.is_start:
             self.is_start = True
             print('data server starting...')
-            # spawn set to 'pool' so that on stop, any outstanding gr will be joined
+            # spawn set capacity of pool so that on stop, any outstanding connection will be terminated
             self.data_server = StreamServer((self.ip, self.port), self.handle_data, spawn=20)
             self.gr_data_server = gevent.spawn(self.data_server.serve_forever)
             print('data server started')
