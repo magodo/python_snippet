@@ -1,0 +1,33 @@
+@startuml
+
+abstract class BaseServer {
+    {method}+__init__(listener, handle, spawn)
+    {method}+set_listener(listener)
+    {method}+parse_address(address)
+    {method}+set_spawn(spawn)
+    {method}+set_handle(handle)
+    {method}+start_accepting()
+    {method}+stop_accepting()
+    {method}+do_handle()
+    {method}+start()
+    {method}+close()
+    {method}+stop()
+    {method}+serve_forever()
+    {method}-_do_read()
+    {method}{abstract}+do_read()
+    {method}{abstract}+do_close()
+    {method}{abstract}+init_socket()
+}
+
+class StreamServer {
+    {field}{static}backlog = 256
+    {field}{static}reuse_addr = 1
+    {method}+__init__(listener, handle, backlog, spawn)
+    {method}+init_socket() note: set socket to non blocking
+    {method}+do_read()
+    {method}+do_close()
+}
+
+BaseServer <|- StreamServer 
+
+@enduml
